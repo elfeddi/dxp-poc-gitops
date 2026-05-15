@@ -1,0 +1,102 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: default
+spec:
+  params:
+    - name: url
+      type: string
+    - name: revision
+      type: string
+      default: main
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: alpine/git
+      imagePullPolicy: IfNotPresent
+      script: |
+        git clone --depth 1 --branch $(params.revision) $(params.url) /workspace/source
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: kaniko-build-push
+  namespace: default
+spec:
+  params:
+    - name: image
+      type: string
+    - name: dockerfile-path
+      type: string
+      default: Dockerfile
+    - name: context
+      type: string
+      default: .
+  workspaces:
+    - name: source
+    - name: docker-config
+  steps:
+    - name: build-push
+      image: gcr.io/kaniko-project/executor:latest
+      imagePullPolicy: IfNotPresent
+      args:
+        - --dockerfile=/workspace/source/$(params.context)/$(params.dockerfile-path)
+        - --context=/workspace/source/$(params.context)
+        - --destination=$(params.image)
+        - --insecure
+        - --skip-tls-verify
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: harbor-credentials
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: dxp-ci
+  namespace: default
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: image
+      type: string
+    - name: context
+      type: string
+      default: apps/nginx-app
+  workspaces:
+    - name: source
+    - name: docker-config
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-push
+      taskRef:
+        name: kaniko-build-push
+      runAfter:
+        - clone
+      params:
+        - name: image
+          value: $(params.image)
+        - name: context
+          value: $(params.context)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: docker-config
+          workspace: docker-config
