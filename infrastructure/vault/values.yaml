@@ -1,0 +1,9 @@
+server:
+  dev:
+    enabled: true
+  image:
+    pullPolicy: IfNotPresent
+
+injector:
+  image:
+    pullPolicy: IfNotPresent
