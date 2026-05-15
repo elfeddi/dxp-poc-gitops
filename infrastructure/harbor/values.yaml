@@ -8,6 +8,8 @@ expose:
         nodePort: 30002
 
 externalURL: http://localhost:30002
+
 persistence:
-  enabled: false
+  enabled: true
+
 imagePullPolicy: IfNotPresent
