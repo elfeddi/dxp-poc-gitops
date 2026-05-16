@@ -68,3 +68,11 @@ echo "🎉 LiteDxP est prêt !"
 echo "   ArgoCD  → https://localhost:9090 (kubectl port-forward svc/argocd-server -n argocd 9090:443)"
 echo "   Harbor  → http://localhost:9091  (kubectl port-forward -n harbor svc/harbor 9091:80)"
 echo "   Vault   → kubectl exec -n vault vault-0 -- vault status"
+
+# 7. Lancer les port-forwards
+kubectl port-forward svc/argocd-server -n argocd 9090:443 &>/dev/null &
+kubectl port-forward -n harbor svc/harbor 9091:80 &>/dev/null &
+
+echo "🌐 Interfaces accessibles :"
+echo "   ArgoCD → https://localhost:9090"
+echo "   Harbor → http://localhost:9091"
